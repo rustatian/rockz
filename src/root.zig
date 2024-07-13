@@ -6,10 +6,10 @@ test "decode file test" {
     defer file.close();
 
     const file_to_write = try std.fs.cwd().createFile("./test_artifacts/test.txt", .{});
-    defer file_to_write.close();
 
     var buf = std.io.bufferedReader(file.reader());
+    try std.compress.gzip.decompress(buf.reader(), file_to_write);
 
-    var decompress = try std.compress.gzip.decompress(buf.reader(), file_to_write);
-    defer decompress.deinit();
+    file_to_write.close();
+    try std.fs.cwd().deleteFile("./test_artifacts/test.txt");
 }
