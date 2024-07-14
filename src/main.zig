@@ -1,24 +1,28 @@
 const std = @import("std");
+const datetime = @import("./datetime.zig");
+const buffer = @import("./buffer.zig");
+
+pub const log_level: std.log.Level = .debug;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    const dt = datetime.DateTime.from_timestamp(@intCast(std.time.timestamp()));
+    std.log.info("{}-{}-{}@{}:{}:{}: rockz is starting", .{ dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second });
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    var args = std.process.args();
+    while (args.next()) |arg| {
+        std.log.info("arg: {s}", .{arg});
+    }
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+test "parse test" {
+    var file = try std.fs.cwd().openFile("./test_artifacts/CPU.pb.gz", .{});
+    defer file.close();
+
+    const file_to_write = try std.fs.cwd().createFile("./test_artifacts/test.txt", .{});
+
+    var buf = std.io.bufferedReader(file.reader());
+    try std.compress.gzip.decompress(buf.reader(), file_to_write);
+
+    file_to_write.close();
+    try std.fs.cwd().deleteFile("./test_artifacts/test.txt");
 }
